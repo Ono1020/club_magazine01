@@ -10,10 +10,11 @@
 \maketitle
 \begin{abstract}
 Ray Tracing in One Weekend(週末レイトレーシング)
-と言う書籍(サイト？)ではレイトレーシングをC++を使って
+と言うサイトでは,
+レイトレーシングをC++で
 簡単に実装する方法について解説されている.
 その中では当たり前だが多少の計算が必要で,
-プログラミングやレイトレーシングに興味を持った未来の高専生たちが
+プログラミングやレイトレーシングに興味を持った未来の高専生たちが,
 いざ作ってみようと思っても(コード例が載っているので作ることはできるが)
 完全に理解した状態で作るには説明が足りないと思われる.
 そこでその計算方法やその他屈折に関する興味深い事実をまとめた.
@@ -23,7 +24,7 @@ Ray Tracing in One Weekend(週末レイトレーシング)
 最近のゲームや映画の映像は
 ものによっては現実と区別がつかないほど
 高度な域にまで達している(特に金属や機械など).
-商業的に使われているものほど細かいものは難しいが,
+商業的に使われているものほど複雑なものは難しいが,
 単純な金属球やガラス球といったものを
 現実のような美しさで1から描画するのは
 実はさほど難しくない.
@@ -43,112 +44,35 @@ Ray Tracing in One Weekend(週末レイトレーシング)
 ソフトウェアを使わずに3D CGを描画できるのだ.
 
 こちらではこれの作り方は説明しない.
-既にRay Tracing in One Weekendという書籍(サイト？)
+既にRay Tracing in One Weekendというサイト
 で作り方を無料公開しているからだ.
 こちらではそのサイトでは説明不足に感じた
 光の屈折の計算方法とそれに関する蛇足情報をまとめてある.
+まず計算する際に必要になる知識の説明をする.
 
-\section{光の屈折とは}
-この宇宙で最速(量子もつれ\footnote{よくわかってないので自分で調べて}とかは無視)
-の光くんは"真空中"で速度$c\simeq 300,000\si{km/s}$とされている.
-これは1秒で地球を7周半できるほどの速さである
-\footnote{速い, が宇宙の最速としては遅い, と思う}.
-しかしこれは真空中の話で他の物質中(空気, 水, ガラス)を通っているときは
-速度が落ちる.
-光は粒子"でも"あるので実際に進むときは図 % あとでTikz追加して！！！
-のように横1列になって進んでいると考えてほしい.
+\section{必要になる知識の説明}
+\subsection*{三角比}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2]
+    \coordinate(A)at({sqrt(3)}, 1);
+    \coordinate(B)at(0, 0);
+    \coordinate(C)at({sqrt(3)}, 0);
+    
+    \draw(A)node[above]{$\mathrm{A}$};
+    \draw(B)node[left]{$\mathrm{B}$};
+    \draw(C)node[right]{$\mathrm{C}$};
+    
+    \draw(A)--(B)--(C)--(A);
+\end{tikzpicture}
+\caption{直角三角形}
+\label{fig:sin-triangle}
+\end{figure}
 
-このように斜めに進んでいると
-他の物質に入るのに時間差がうまれる.
-この速度差と時間差が影響して
-人の目からは光が他の物質へ入るときに
-屈折するように見えるのだ.
-
-ところで適当に流していたが, そもそもなぜ
-「他の物質中(空気, 水, ガラス)を通っているときは速度が落ちる」
-のだろう.
-
-\section{屈折光の計算}
-実際に屈折光をスネルの法則を中心に計算していくが
-計算過程でいくつか高校数学で習うものを使う.
-といってもちょろいので簡単な説明をしておく.
-
-\subsection{必要になる知識の説明}
-\subsubsection*{三角比}
-\begin{center}
-  	\begin{tikzpicture}[scale=2.25]
-	    % \draw[->,>=stealth,semithick](-0.2,0)--(5,0)node[right]{$x$};% x軸
-	    % \draw[->,>=stealth,semithick](0,-0.2)--(0,2)node[above]{$y$};% y軸
-	    % \coordinate[label=below left:$\mathrm{O}$](O)at(0,0);%原点
-	    % \coordinate(A)at(1,0);
-	    % \coordinate(B)at(1.3,0);
-	    % \coordinate(C)at(1.6,0);
-	    % \coordinate(D)at(1.9,0);
-	    % \coordinate(E)at(2.2,0);
-	    % \coordinate(F)at(2.5,0);
-	    % \coordinate(G)at(2.8,0);
-	    % \coordinate(H)at(3.1,0);
-	    % \coordinate(I)at(3.4,0);
-	    % \coordinate(J)at(3.7,0);
-	    % \coordinate(K)at(4,0);
-
-	    \coordinate(A)at({sqrt(3)}, 1);
-	    \coordinate(B)at(0, 0);
-	    \coordinate(C)at({sqrt(3)}, 0);
-	    
-	    \draw(A)node[above]{$\mathrm{A}$};
-	    \draw(B)node[left]{$\mathrm{B}$};
-	    \draw(C)node[right]{$\mathrm{C}$};
-	    
-	    \draw(A)--(B)--(C)--(A);
-
-	    % \draw plot[thick, domain=-0.2:4.5, smooth] (\x,{exp(-pow(\x/2-1, 2))+1/2});
-	    % \fill[gray, opacity=0.3] (1,0) -- plot[domain=1:4, samples=100, smooth] (\x, {exp(-pow(\x/2-1, 2))+1/2}) -- (4,0);
-
-	    % \draw[dashed](1, -0.2)--(1, 2)node[above]{$a$};
-	    % \draw[dashed](4, -0.2)--(4, 2)node[above]{$b$};
-
-	    % \draw(A)rectangle(1.3,{exp(-pow(1.3/2-1, 2))+1/2});
-	    % \draw(B)rectangle(1.6,{exp(-pow(1.6/2-1, 2))+1/2});
-	    % \draw(C)rectangle(1.9,{exp(-pow(1.9/2-1, 2))+1/2});
-	    % \draw(D)rectangle(2.2,{exp(-pow(2.2/2-1, 2))+1/2});
-	    % \draw(E)rectangle(2.5,{exp(-pow(2.5/2-1, 2))+1/2});
-	    % \draw(F)rectangle(2.8,{exp(-pow(2.8/2-1, 2))+1/2});
-	    % \draw(G)rectangle(3.1,{exp(-pow(3.1/2-1, 2))+1/2});
-	    % \draw(H)rectangle(3.4,{exp(-pow(3.4/2-1, 2))+1/2});
-	    % \draw(I)rectangle(3.7,{exp(-pow(3.7/2-1, 2))+1/2});
-	    % \draw(J)rectangle(4,{exp(-pow(4/2-1, 2))+1/2});
-
-	    % \draw(A)node[below left]{$x_0$};
-	    % \draw(B)node[below]{$x_1$};
-	    % \draw(C)node[below]{$x_2$};
-	    % \draw(D)node[below]{$x_3$};
-	    % \draw(E)node[below]{$x_4$};
-	    % \draw(F)node[below]{$\cdots$};
-	    % \draw(G)node[below]{$x_{k-1}$};
-	    % \draw(H)node[below]{$x_k$};
-	    % \draw(I)node[below]{$\cdots$};
-	    % \draw(J)node[below]{$x_{n-1}$};
-	    % \draw(K)node[below right]{$x_n$};
-
-	    % \draw(4.5, {exp(-pow(4.5/2-1, 2))+1/2})node[right]{$f(x)$};
-
-	    % \draw[looseness=1,bend left=60] (A) to node[above]{$\Delta x_1$}(B);
-	    % \draw[looseness=1,bend left=60] (B) to node[above]{$\Delta x_2$}(C);
-	    % \draw[looseness=1,bend left=60] (G) to node[above]{$\Delta x_k$}(H);
-  	\end{tikzpicture}
-\end{center}
-
-図 % あとでTikz追加して！
-のような直角三角形がある.
+図\ref{fig:sin-triangle}のような直角三角形がある.
 $\angle\mathrm{ABC}=\theta$とする.
 それぞれ向かい合う辺を$a, b, c$とすると
 三角比は以下のように定義される.
-% \begin{align*}
-% \sin{\theta}&=\frac{b}{c}\\
-% \cos{\theta}&=\frac{a}{c}\\
-% \tan{\theta}&=\frac{b}{a}
-% \end{align*}
 \[
 \sin{\theta}=\frac{b}{c}\hspace{5mm}
 \cos{\theta}=\frac{a}{c}\hspace{5mm}
@@ -159,7 +83,7 @@ $\angle\mathrm{ABC}=\theta$とする.
 斜辺の長さをかければそれぞれ高さ, 底辺の長さ
 を求めることができる.
 
-\subsubsection*{ベクトル}
+\subsection*{ベクトル}
 今まで使ってきた長さや速さといったものは
 1つの値で表してきた.
 このようなものをスカラーと言う.
@@ -171,8 +95,22 @@ $\vec{a}$や$\vb{a}$などを使う.
 加算, 内積, 大きさの計算方法がわかっていれば良いので, 
 その3つについて説明する.
 
-加算については図のようなイメージを持ってもらえば良い.
+加算については図\ref{fig:vector-add}のようなイメージを持ってもらえば良い.
 マイナスがついた場合方向が真逆になると思って欲しい.
+\begin{figure}[h]
+\centering
+  \begin{tikzpicture}[scale=1]
+  \coordinate(A)at(0,0);
+  \coordinate(B)at(2,1);
+  \coordinate(C)at(4,-1);
+
+  \draw[-Stealth, thick](A)--node[above left]{$\vb{a}$}(B);
+  \draw[thick](B)--node[above right]{$\vb{b}$}(C);
+  \draw[-Stealth, thick](A)--node[below]{$\vb{a}+\vb{b}$}(C);
+  \end{tikzpicture}
+\caption{ベクトルの加算}
+\label{fig:vector-add}
+\end{figure}
 
 内積は２つのベクトル$\vb{a, b}$のなす角を$\theta$とするとき
 以下のように定義される.
@@ -180,8 +118,131 @@ $\vec{a}$や$\vb{a}$などを使う.
 \vb{a}\cdot\vb{b}=|\vb{a}||\vb{b}|\cos{\theta}
 \]
 $|\vb{a}|$は$\vb{a}$の大きさを意味しており,
-イメージとしては図の通りである.
-式を見てもわかるが内積で得られる値はスカラーである.
+$\theta$は$\vb{a}$と$\vb{b}$のなす角度である.
+イメージとしては$\vb{a}$の終端から
+$\vb{b}$へ垂線をおろし, その長さに
+それぞれの大きさ(長さ)をかけたものだ.
+式を見ればわかることだが内積で得られる値はスカラーである.
+
+\section{光の屈折とは}
+光が別の物質へ入るとき(入射),
+光が曲がる現象がある.
+これを屈折という.
+水面に景色が映り込んだり,
+分厚いガラスから見る景色が歪んでいたりするのは
+この屈折という現象によって引き起こされる.
+
+\subsection{屈折のメカニズム}
+そもそも屈折とはどのようにして起きるのだろう.
+図\ref{fig:light-refraction}に屈折する光の簡単なモデルを載せた.
+\begin{figure}[h]
+\centering
+  \begin{tikzpicture}[scale=0.3]
+  % \coordinate(A)at(0,0);
+  % \coordinate(B)at(2,1);
+  % \coordinate(C)at(4,-1);
+
+  % \draw[-Stealth, thick](A)--node[above left]{$\vb{a}$}(B);
+  % \draw[thick](B)--node[above right]{$\vb{b}$}(C);
+  % \draw[-Stealth, thick](A)--node[below]{$\vb{a}+\vb{b}$}(C);
+  \coordinate(A)at(0, 3);
+  \coordinate(B)at(0, 0);
+  \coordinate(C)at(0, -3);
+  \draw[thick](0, 7)--(0, -7);
+
+  \draw[dashed](A)--(-5, 2);
+  \draw[dashed](A)--(5, 7);
+  \draw[dashed](B)--(-5, -1);
+  \draw[dashed](B)--(5, 4);
+  \draw[dashed](C)--(-5, -4);
+  \draw[dashed](C)--(5, 1);
+
+  \draw[-Stealth, thick]({-15/26-5/2},{75/26-1/2})--({-5/2}, {-1/2});
+  \draw[-Stealth, thick]({-60/41+5/2},{75/41+4/2-3})--({5/2}, {4/2-3});
+  \end{tikzpicture}
+\caption{屈折のモデル}
+\label{fig:light-refraction}
+\end{figure}
+光は波の性質を持っているので,
+図\ref{fig:light-refraction}の破線は光の波の山の位置を描いており,
+矢印は光の山と山の距離, 波長の長さだけ引いてある
+(山と山の最短距離=波長).
+光が他の物質に入るときに曲がるのであれば,
+必然的に図のように波の方向が変化する.
+このとき, 山の接触しなければ波の周期にずれが起きてしまうので,
+波の方向を変えると一緒になって波の間隔も短くなる.
+
+光の波長が変わったとしても
+光の波から波までの時間, 周期は変わってしまっては
+おかしなことになる.
+なぜなら元は同じ光源だったはずだからである.
+であれば波長を変えるには速さを変えるしか方法はない(\ref{eq:wave}).
+よって屈折とは光が他の物質へ入射する際に
+速度が変わることによって引き起こされることがわかった.
+
+\begin{equation}
+\lambda=vT (\lambda:\mbox{波長}v\mbox{:速度}T:\mbox{周期})\label{eq:wave}
+\end{equation}
+
+\subsection{光が遅くなるとは}
+この宇宙で最速の光くんは"真空中"で
+速度$c\simeq 300,000\si{km/s}$とされている.
+これは1秒で地球を7周半できるほどの速さである
+\footnote{速い, が宇宙の最速としては遅い, と思う}.
+なぜ"真空中で"となっている理由は先程説明した.
+
+しかし光速というものは同時に絶対的であるとも言われている.
+どんな状態(速さ)から見ても光の速度は変化しない.
+そのため時間が伸び縮みするのだが
+そんなことを言っておきながら光が遅くなってどうすんだと思うだろう.
+実は物質中では光は遅くなるというのは
+半分嘘である.
+正しくは"見かけ上"光は光速$c$より遅くなるのだ.
+
+ここからはある程度数式を使って
+小難しいことを言っているが,
+正直式の内容を理解しなくても
+文章の部分が理解できれば十分だ.
+
+まず電場, 電磁波について簡単に話そう.
+この世のありとあらゆる物質はすべて原子からできており,
+原子は原子核とその周りにある電子で構成されている.
+その原子核には陽子という正の電荷(電気)を持つものと
+電荷を持たない中性子がある.
+こいつらも分解できるがこの話には関係ないので割愛する.
+
+ここで今回重要になってくるのは電荷を持つ
+電子と陽子だ.
+陽子に関しては単体であることはほとんどないので
+原子核として考えてよいだろう.
+これらは存在するだけで電場と呼ばれる空間を作り,
+この電場の強さや様々な電場が重ね合わさることによって生じる
+向きに従って, 電荷を持つ物質は力を加えられる
+\footnote{電荷からの距離と電場を生み出している電荷の大きさによって
+電場の強さは変化し, それらは異符号の電荷を自身に引き寄せるような力が働いている.
+世界中に電荷を持つ物体は大量にあるので, 複雑に絡みあうのだ.
+中学生であれば磁力線のようなものだと思って欲しい.}.
+丁度電気がプラスからマイナスに流れるような感じだ.
+
+さてこの電場は光速$c$で伝わる.
+また電場は電荷を持つ物質との距離にも依存するので
+もし電荷が移動すれば電場に変化が生まれることになる.
+これが電磁波となって伝わるのだ
+\footnote{少々雑な説明なので注意してください}.
+
+さてここからは簡単な数式を使いながら説明する.
+まず状況を設定する.
+
+% aaaaaaaaaaaaaaaaaa
+
+ところで適当に流していたが, そもそもなぜ
+「他の物質中(空気, 水, ガラス)を通っているときは速度が落ちる」
+のだろう.
+
+\section{屈折光の計算}
+実際に屈折光をスネルの法則を中心に計算していくが
+計算過程でいくつか高校数学で習うものを使う.
+といってもちょろいので簡単な説明をしておく.
 
 \subsection{スネルの法則}
 
@@ -193,7 +254,7 @@ $|\vb{a}|$は$\vb{a}$の大きさを意味しており,
 一番最初に紹介したのに最後に紹介するのは
 あまり良くないかもしれないが,
 最後にRay Tracing in One Weekendについて布教したいと思う.
-そもそも
+そもそもこちら
 
 \begin{thebibliography}{9}
 \bibitem{key1} Ray Tracing in One Weekend.
