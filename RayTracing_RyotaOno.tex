@@ -168,7 +168,7 @@ $\vb{b}$へ垂線をおろし, その長さに
 矢印は光の山と山の距離, 波長の長さだけ引いてある
 (山と山の最短距離=波長).
 光が他の物質に入るときに曲がるのであれば,
-必然的に図のように波の方向が変化する.
+必然的に図\ref{fig:light-refraction}のように波の方向が変化する.
 このとき, 山の接触しなければ波の周期にずれが起きてしまうので,
 波の方向を変えると一緒になって波の間隔も短くなる.
 
@@ -232,12 +232,75 @@ $\vb{b}$へ垂線をおろし, その長さに
 
 さてここからは簡単な数式を使いながら説明する.
 まず状況を設定する.
+薄いガラスの板があり,
+横から見て左の遠くに外部光源$S$があり,
+右の遠くにある観測点$P$での電場について考える.
+\begin{figure}[h]
+\centering
+  \begin{tikzpicture}[scale=1]
+  \coordinate(G1)at(-0.1, 1);
+  \coordinate(G2)at(0.1, 1);
+  \coordinate(G3)at(0.1, -1);
+  \coordinate(G4)at(-0.1, -1);
+  \draw(G1)--(G2)--(G3)--node[below]{glass}(G4)--(G1);
 
-% aaaaaaaaaaaaaaaaaa
+  \coordinate(S)at(-7, 0);
+  \draw[-Stealth, dashed](S)--node[above]{$\vb{E}_s$}(-3, 0);
+  \fill[white](S)circle[radius=0.05]node[below]{$S$};
+  \draw(S)circle[radius=0.05]node[below]{$S$};
 
-ところで適当に流していたが, そもそもなぜ
-「他の物質中(空気, 水, ガラス)を通っているときは速度が落ちる」
-のだろう.
+  \coordinate(P)at(7, 0);
+  \fill[black](P)circle[radius=0.05]node[below]{$P$};
+  \end{tikzpicture}
+\caption{問題設定}
+\label{fig:light-refraction}
+\end{figure}
+まず$P$における電場を求めるが,
+$S$の発する電磁波がガラスの板の原子にある
+電子にも作用し電場が変化する.
+結果$P$における電場も$S$からの電磁波による影響以外に
+様々な影響を受けることになる.
+もちろんこの宇宙の全電荷による作用もあるが
+今回の場合はそれらは無視できるほど小さいものと仮定する.
+ではこの仮定を元に
+$P$における電場を$\vb{E}$,
+$S$の発する電場を$\vb{E}_s$,
+ガラス板内の振動する電荷による電場を$\vb{E}_a$とすると以下のようになる.
+\begin{equation}
+\vb{E}=\vb{E}_s+\vb{E}_a
+\end{equation}
+
+ここからははこの$\vb{E}_a$がどうなるのかを考えていく.
+まずはじめに単純に屈折率$n$の物質中を進む光の速さは
+$\frac{c}{n}$になるとする.
+もしガラス板が何の影響も持たないとすると,
+右($z$軸)に進む波の電場は
+\begin{equation*}
+E_s=E_0\cos{\omega\left(t-\frac{z}{c}\right)}
+\end{equation*}
+となる.
+オイラーの公式
+\footnote{$e^{i\theta}=\cos{\theta}+i\sin{\theta}$}
+を用いると以下のように表すこともできる.
+\begin{equation*}
+E_s=E_0e^{i\omega\frac{t-z}{c}}
+\end{equation*}
+$i$は虚数単位なので$\sin$の部分は情報として落ちるので問題ない.
+$z$は$S$と$P$の距離を表している.
+$\cos$については先程説明したのでなんとなくわかると思うが,
+これは波を表すことになる.
+時間に関係してくるため$t$が入っており,
+また距離を速さで割った$\frac{z}{c}$だけ
+伝わる時間に差ができる.
+なぜならこの$E_s$というのは$S$での電場であり
+$t$は$P$を基準に決めているからである.
+
+ここで板厚を$\Delta z$とすると
+板が無ければこの距離を
+$\frac{\Delta z}{c}$の時間で進むが,
+仮に
+
+
 
 \section{屈折光の計算}
 実際に屈折光をスネルの法則を中心に計算していくが
@@ -245,6 +308,72 @@ $\vb{b}$へ垂線をおろし, その長さに
 といってもちょろいので簡単な説明をしておく.
 
 \subsection{スネルの法則}
+先程まで屈折率を$n$で扱ってきたが
+諸事情(法線を$\vb{n}$で表したい)により
+屈折率を$\eta, \eta'$で表す.
+ここで使う記号を以下にまとめる.
+なおベクトルは全て単位ベクトルである.
+\begin{table}[h]
+  \centering
+  \caption{記号の意味}
+  \label{}
+  \begin{tabular}{c|c}
+  名前 & 意味 \\\hline
+  $\eta$ & 入射側の屈折率 \\
+  $\eta'$ & 屈折側の屈折率 \\
+  $\theta$ & 入射角 \\
+  $\theta'$ & 屈折角 \\
+  $\vb{n}$ & 法線のベクトル \\
+  $\vb{R}$ & 入射光 \\
+  $\vb{R'}$ & 反射光 \\
+  $\vb{R'}_\parallel$ & 反射光の法線に平行な成分 \\
+  $\vb{R'}_\perp$ & 反射光の法線に垂直な成分 \\
+  \end{tabular}
+\end{table}
+
+まず屈折の法則としてスネルの法則を載せる.
+これが屈折光を求める上での基本となる.
+スネルの法則の導出についてはGoogle先生に聞けば一発なので
+気になる場合は各自調べてほしい.
+\begin{equation}
+\eta\cdot\sin{\theta}=\eta'\sin{\theta'}
+\end{equation}
+主に使うのは下の変形した形である.
+\begin{equation}
+\sin{\theta'}=\frac{\eta}{\eta'}\sin{\theta}
+\end{equation}
+まず今回の問題を図に書き起こすと
+図\ref{fig:light-refraction-simple}のようになる.
+\begin{figure}[h]
+\centering
+  \begin{tikzpicture}[scale=1]
+  % \coordinate(A)at(0,0);
+  % \coordinate(B)at(2,1);
+  % \coordinate(C)at(4,-1);
+
+  % \draw[-Stealth, thick](A)--node[above left]{$\vb{a}$}(B);
+  % \draw[thick](B)--node[above right]{$\vb{b}$}(C);
+  % \draw[-Stealth, thick](A)--node[below]{$\vb{a}+\vb{b}$}(C);
+  \draw[thick](-5, 0)--(5, 0);
+  \draw[dashed](0, 5)--(0, -5);
+  % \coordinate(A)at(0, 3);
+  % \coordinate(B)at(0, 0);
+  % \coordinate(C)at(0, -3);
+  % \draw[thick](0, 7)--(0, -7);
+
+  % \draw[dashed](A)--(-5, 2);
+  % \draw[dashed](A)--(5, 7);
+  % \draw[dashed](B)--(-5, -1);
+  % \draw[dashed](B)--(5, 4);
+  % \draw[dashed](C)--(-5, -4);
+  % \draw[dashed](C)--(5, 1);
+
+  % \draw[-Stealth, thick]({-15/26-5/2},{75/26-1/2})--({-5/2}, {-1/2});
+  % \draw[-Stealth, thick]({-60/41+5/2},{75/41+4/2-3})--({5/2}, {4/2-3});
+  \end{tikzpicture}
+\caption{屈折のシンプルな方のモデル}
+\label{fig:light-refraction-simple}
+\end{figure}
 
 \subsection{全反射}
 
